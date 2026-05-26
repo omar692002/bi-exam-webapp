@@ -1,0 +1,43 @@
+# ===== Java / Maven =====
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+
+# Quarkus
+.quarkus/
+build/
+quarkus.log
+
+# ===== Node / React =====
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.vite/
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ===== Environment =====
+.env
+.env.local
+.env.*.local
+application-local.properties
+
+# ===== Logs =====
+logs/
+*.log
