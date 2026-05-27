@@ -47,8 +47,8 @@ public class AnalyticsService {
     }
 
     public ChartDataDto salesByCountry(TimeFilter tf) {
-        return repo.ranked("Revenue by Country",
-                MdxConstants.CUSTOMER_COUNTRY, tf,
+        return repo.ranked("Revenue by City",
+                MdxConstants.CUSTOMER_CITY, tf,
                 MdxConstants.M_REVENUE, MdxConstants.M_REVENUE, MdxConstants.M_QUANTITY);
     }
 
