@@ -4,6 +4,7 @@ import com.bi.exam.dto.ChartDataDto;
 import com.bi.exam.dto.KpiDto;
 import com.bi.exam.dto.KpiSummaryDto;
 import com.bi.exam.dto.TableDataDto;
+import com.bi.exam.dto.TimeFilter;
 import com.bi.exam.mdx.MdxConstants;
 import com.bi.exam.repository.AnalyticsRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,111 +12,81 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 
-/**
- * Business orchestration layer for analytics: hides MDX details from the
- * controllers, names each KPI / chart, and wires the right measures and
- * dimensions for each visualisation.
- */
 @ApplicationScoped
 public class AnalyticsService {
 
     @Inject AnalyticsRepository repo;
 
-    // ------------------------------------------------------------------
-    // KPI dashboard summary
-    // ------------------------------------------------------------------
-    public KpiSummaryDto kpiSummary() {
+    public KpiSummaryDto kpiSummary(TimeFilter tf) {
         return new KpiSummaryDto(List.of(
-                new KpiDto("Total Revenue",          repo.scalarMeasure(MdxConstants.M_REVENUE),         "USD"),
-                new KpiDto("Units Sold",             repo.scalarMeasure(MdxConstants.M_QUANTITY),        "units"),
-                new KpiDto("Tax Collected",          repo.scalarMeasure(MdxConstants.M_TAX_AMOUNT),      "USD"),
-                new KpiDto("Order Lines",            repo.scalarMeasure(MdxConstants.M_ORDER_LINES),     "lines"),
-                new KpiDto("Avg Order Line Value",   repo.scalarMeasure(MdxConstants.M_AVG_ORDER_LINE_VALUE), "USD"),
-                new KpiDto("Effective Tax Rate",     repo.scalarMeasure(MdxConstants.M_TAX_RATE_PCT) * 100d, "%")
+                new KpiDto("Total Revenue",        repo.scalarMeasure(MdxConstants.M_REVENUE,              tf),         "USD"),
+                new KpiDto("Units Sold",           repo.scalarMeasure(MdxConstants.M_QUANTITY,             tf),         "units"),
+                new KpiDto("Tax Collected",        repo.scalarMeasure(MdxConstants.M_TAX_AMOUNT,           tf),         "USD"),
+                new KpiDto("Order Lines",          repo.scalarMeasure(MdxConstants.M_ORDER_LINES,          tf),         "lines"),
+                new KpiDto("Avg Order Line Value", repo.scalarMeasure(MdxConstants.M_AVG_ORDER_LINE_VALUE, tf),         "USD"),
+                new KpiDto("Effective Tax Rate",   repo.scalarMeasure(MdxConstants.M_TAX_RATE_PCT,         tf) * 100d,  "%")
         ));
     }
 
-    // ------------------------------------------------------------------
-    // Sales by product / category / customer / employee
-    // ------------------------------------------------------------------
-    public ChartDataDto salesByProduct() {
+    public ChartDataDto salesByProduct(TimeFilter tf) {
         return repo.ranked("Revenue by Product Brand",
-                MdxConstants.PRODUCT_BRAND,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_QUANTITY);
+                MdxConstants.PRODUCT_BRAND, tf,
+                MdxConstants.M_REVENUE, MdxConstants.M_REVENUE, MdxConstants.M_QUANTITY);
     }
 
-    public ChartDataDto salesByCategory() {
+    public ChartDataDto salesByCategory(TimeFilter tf) {
         return repo.ranked("Revenue by Product Category",
-                MdxConstants.PRODUCT_CATEGORY,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_QUANTITY);
+                MdxConstants.PRODUCT_CATEGORY, tf,
+                MdxConstants.M_REVENUE, MdxConstants.M_REVENUE, MdxConstants.M_QUANTITY);
     }
 
-    public ChartDataDto salesByCustomerType() {
+    public ChartDataDto salesByCustomerType(TimeFilter tf) {
         return repo.chart("Revenue by Customer Type",
-                MdxConstants.CUSTOMER_TYPE,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_ORDER_LINES);
+                MdxConstants.CUSTOMER_TYPE, tf,
+                MdxConstants.M_REVENUE, MdxConstants.M_ORDER_LINES);
     }
 
-    public ChartDataDto salesByCountry() {
+    public ChartDataDto salesByCountry(TimeFilter tf) {
         return repo.ranked("Revenue by Country",
-                MdxConstants.CUSTOMER_COUNTRY,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_QUANTITY);
+                MdxConstants.CUSTOMER_COUNTRY, tf,
+                MdxConstants.M_REVENUE, MdxConstants.M_REVENUE, MdxConstants.M_QUANTITY);
     }
 
     public ChartDataDto revenueOverTime() {
-        return repo.chart("Revenue Over Time (Year)",
-                MdxConstants.DATE_YEAR,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_REVENUE_WITH_TAX);
+        return repo.chart("Revenue by Month",
+                MdxConstants.DATE_MONTH, TimeFilter.of("", "", ""),
+                MdxConstants.M_REVENUE, MdxConstants.M_REVENUE_WITH_TAX);
     }
 
-    public ChartDataDto revenueByQuarter() {
+    public ChartDataDto revenueByQuarter(TimeFilter tf) {
+        // [Dim Date].[Quarter] is the row dimension — it cannot also be a WHERE slicer.
+        // Only the year filter is passed; quarter/month filters are stripped to avoid the MDX conflict.
         return repo.chart("Revenue by Quarter",
-                MdxConstants.DATE_QUARTER,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_TAX_AMOUNT);
+                MdxConstants.DATE_QUARTER, TimeFilter.of(tf.year(), "", ""),
+                MdxConstants.M_REVENUE, MdxConstants.M_TAX_AMOUNT);
     }
 
-    public ChartDataDto taxAnalysis() {
+    public ChartDataDto taxAnalysis(TimeFilter tf) {
         return repo.chart("Tax vs Revenue by Category",
-                MdxConstants.PRODUCT_CATEGORY,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_TAX_AMOUNT,
-                MdxConstants.M_TAX_RATE_PCT);
+                MdxConstants.PRODUCT_CATEGORY, tf,
+                MdxConstants.M_REVENUE, MdxConstants.M_TAX_AMOUNT);
     }
 
-    // ------------------------------------------------------------------
-    // Top-N tables
-    // ------------------------------------------------------------------
-    public TableDataDto topCustomers(int n) {
+    public TableDataDto topCustomers(int n, TimeFilter tf) {
         return repo.topN("Top " + n + " Customers", "Customer",
-                MdxConstants.CUSTOMER_ID, n,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_ORDER_LINES,
-                MdxConstants.M_QUANTITY);
+                MdxConstants.CUSTOMER_ID, n, tf,
+                MdxConstants.M_REVENUE, MdxConstants.M_REVENUE, MdxConstants.M_ORDER_LINES, MdxConstants.M_QUANTITY);
     }
 
-    public TableDataDto topProducts(int n) {
+    public TableDataDto topProducts(int n, TimeFilter tf) {
         return repo.topN("Top " + n + " Products", "Product",
-                MdxConstants.PRODUCT_ID, n,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_QUANTITY);
+                MdxConstants.PRODUCT_ID, n, tf,
+                MdxConstants.M_REVENUE, MdxConstants.M_REVENUE, MdxConstants.M_QUANTITY);
     }
 
-    public TableDataDto topEmployees(int n) {
+    public TableDataDto topEmployees(int n, TimeFilter tf) {
         return repo.topN("Top " + n + " Sales Reps", "Employee",
-                MdxConstants.EMPLOYEE_ID, n,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_REVENUE,
-                MdxConstants.M_ORDER_LINES);
+                MdxConstants.EMPLOYEE_ID, n, tf,
+                MdxConstants.M_REVENUE, MdxConstants.M_REVENUE, MdxConstants.M_ORDER_LINES);
     }
 }

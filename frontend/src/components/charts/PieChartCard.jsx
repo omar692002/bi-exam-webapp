@@ -9,10 +9,10 @@ export default function PieChartCard({ data }) {
   }))
 
   return (
-    <Card elevation={0} variant="outlined" sx={{ height: '100%' }}>
-      <CardContent>
-        <Typography variant="subtitle1" gutterBottom>{data.title}</Typography>
-        <ResponsiveContainer width="100%" height={300}>
+    <Card elevation={0} variant="outlined" sx={{ height: '100%', overflow: 'visible' }}>
+      <CardContent sx={{ p: 3.5, '&:last-child': { pb: 3.5 } }}>
+        <Typography variant="h6" gutterBottom sx={{ mb: 2.5 }}>{data.title}</Typography>
+        <ResponsiveContainer width="100%" height={420}>
           <PieChart>
             <Pie
               data={pieData}
@@ -20,8 +20,8 @@ export default function PieChartCard({ data }) {
               nameKey="name"
               cx="50%"
               cy="50%"
-              innerRadius={60}
-              outerRadius={100}
+              innerRadius={70}
+              outerRadius={120}
               paddingAngle={3}
             >
               {pieData.map((_, i) => (
@@ -29,7 +29,7 @@ export default function PieChartCard({ data }) {
               ))}
             </Pie>
             <Tooltip formatter={v => v?.toLocaleString()} />
-            <Legend />
+            <Legend wrapperStyle={{ paddingTop: 16 }} />
           </PieChart>
         </ResponsiveContainer>
       </CardContent>
