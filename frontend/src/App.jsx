@@ -167,7 +167,7 @@ export default function App() {
             </Grid>
             <Grid item xs={12} lg={5}>
               <Slot state={taggedYear(byQuarter)} height={500}>
-                {d => <BarChartCard data={d} />}
+                {d => <ComboChartCard data={d} />}
               </Slot>
             </Grid>
           </Grid>
