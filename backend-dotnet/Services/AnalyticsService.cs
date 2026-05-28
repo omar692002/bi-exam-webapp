@@ -41,15 +41,15 @@ public sealed class AnalyticsService
             MdxConstants.M_REVENUE, MdxConstants.M_REVENUE, MdxConstants.M_QUANTITY);
 
     public ChartDataDto RevenueOverTime() =>
-        _repo.Chart("Revenue by Month",
+        _repo.Chart("Revenue & Units Over Time",
             MdxConstants.DATE_MONTH, TimeFilter.Of("", "", ""),
-            MdxConstants.M_REVENUE, MdxConstants.M_REVENUE_WITH_TAX);
+            MdxConstants.M_REVENUE, MdxConstants.M_QUANTITY);
 
     public ChartDataDto RevenueByQuarter(TimeFilter tf) =>
         // [Dim Date].[Quarter] is the row dimension — strip quarter/month slicers to avoid MDX conflict.
         _repo.Chart("Revenue by Quarter",
             MdxConstants.DATE_QUARTER, TimeFilter.Of(tf.Year, "", ""),
-            MdxConstants.M_REVENUE, MdxConstants.M_TAX_AMOUNT);
+            MdxConstants.M_REVENUE, MdxConstants.M_QUANTITY);
 
     public ChartDataDto TaxAnalysis(TimeFilter tf) =>
         _repo.Chart("Tax vs Revenue by Category",

@@ -19,10 +19,6 @@ import BarChartCard   from './components/charts/BarChartCard'
 import PieChartCard   from './components/charts/PieChartCard'
 import DataTable      from './components/tables/DataTable'
 
-/**
- * Keeps stale data visible (dimmed) while a refetch is in flight.
- * Only falls back to <Loader> on the very first load (data === null).
- */
 function Slot({ state, height = 300, children }) {
   if (state.data === null) return <Loader height={height} />
   return (
@@ -41,20 +37,14 @@ export default function App() {
   const [quarter, setQuarter] = useState('')
   const [month,   setMonth]   = useState('')
 
-  // Full filter tuple — used by charts that support all three dimensions
   const f = [year, quarter, month]
 
   // --- Data fetching -----------------------------------------------------------
 
-  // Available years come from a dedicated endpoint, not from the chart data.
-  const yearsData     = useData(api.getAvailableYears, [])
+  const yearsData      = useData(api.getAvailableYears, [])
   const availableYears = yearsData.data ?? []
 
-  // Revenue Overview: monthly breakdown — only year makes sense as a filter here
-  // (filtering by month would collapse the chart to a single bar; by quarter to 3).
-  const overTime = useData(api.getRevenueOverTime, [])
-
-  // Key Metrics KPIs: full filter (year / quarter / month)
+  // Key Metrics: full filter
   const kpis = useData(() => api.getKpis(...f), f)
 
   // Sales Analysis: full filter
@@ -63,9 +53,11 @@ export default function App() {
   const byProduct  = useData(() => api.getSalesByProduct(...f),      f)
   const byType     = useData(() => api.getSalesByCustomerType(...f), f)
 
-  // Time Trends – Revenue by Quarter: only year is meaningful here.
-  // Filtering by quarter would conflict with the row dimension (all quarters on rows);
-  // filtering by month makes no sense on a quarterly chart.
+  // Revenue Trends:
+  //   overTime — long-term trend (all periods, no slicer — shows Revenue + Units over all time)
+  //   byQuarter — within-year distribution (year-filtered only; slicing by quarter would
+  //               conflict with the row axis which already enumerates all 4 quarters)
+  const overTime  = useData(api.getRevenueOverTime,                      [])
   const byQuarter = useData(() => api.getRevenueByQuarter(year, '', ''), [year])
 
   // Tax & Finance: full filter
@@ -76,7 +68,7 @@ export default function App() {
   const topProducts  = useData(() => api.getTopProducts(10, ...f),  f)
   const topEmployees = useData(() => api.getTopEmployees(10, ...f), f)
 
-  // --- Loading / error state ---------------------------------------------------
+  // --- Loading / error --------------------------------------------------------
 
   const filterDependent = [
     kpis, byCategory, byCountry, byProduct, byType,
@@ -85,21 +77,15 @@ export default function App() {
   const isLoading = filterDependent.some(d => d.loading)
   const errors    = [...filterDependent, overTime].filter(d => d.error).map(d => d.error)
 
-  // --- Helpers -----------------------------------------------------------------
+  // --- Title tagging ----------------------------------------------------------
 
-  // Appends the active filter label to a chart title.
-  // `dims` controls which filter dimensions contribute to the label.
-  const activeLabel   = (dims) => dims.filter(Boolean).join(' · ')
-  const tagChart = (state, dims) => {
-    const lbl = activeLabel(dims)
+  const tag = (state, dims) => {
+    const lbl = dims.filter(Boolean).join(' · ')
     if (!state.data || !lbl) return state
     return { ...state, data: { ...state.data, title: `${state.data.title} — ${lbl}` } }
   }
-
-  // Full label: year · quarter · month
-  const tagged     = (state) => tagChart(state, [year, quarter, month])
-  // Year-only label (for Time Trends charts that only use year)
-  const taggedYear = (state) => tagChart(state, [year])
+  const tagged     = (state) => tag(state, [year, quarter, month])
+  const taggedYear = (state) => tag(state, [year])
 
   return (
     <ThemeProvider theme={theme}>
@@ -117,7 +103,7 @@ export default function App() {
       <Box component="main" sx={{ p: 4, pt: '136px', bgcolor: 'background.default', minHeight: '100vh' }}>
         <ErrorBanner errors={errors} />
 
-        {/* ── Key Metrics ─────────────────────────────────────────────────── */}
+        {/* ── 1. Key Metrics ──────────────────────────────────────────────── */}
         <Section title="Key Metrics">
           {kpis.data === null ? (
             <Grid container spacing={2.5}>
@@ -138,15 +124,7 @@ export default function App() {
           )}
         </Section>
 
-        {/* ── Revenue Overview ────────────────────────────────────────────── */}
-        {/* Not filterable by quarter/month — filtering by year only makes sense here */}
-        <Section title="Revenue Overview">
-          <Slot state={overTime} height={520}>
-            {d => <ComboChartCard data={d} />}
-          </Slot>
-        </Section>
-
-        {/* ── Sales Analysis ──────────────────────────────────────────────── */}
+        {/* ── 2. Sales Analysis ───────────────────────────────────────────── */}
         <Section title="Sales Analysis">
           <Grid container spacing={5}>
             <Grid item xs={12} md={6}>
@@ -155,12 +133,12 @@ export default function App() {
               </Slot>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Slot state={tagged(byCountry)} height={560}>
+              <Slot state={tagged(byProduct)} height={560}>
                 {d => <BarChartCard data={d} horizontal />}
               </Slot>
             </Grid>
             <Grid item xs={12} lg={8}>
-              <Slot state={tagged(byProduct)} height={560}>
+              <Slot state={tagged(byCountry)} height={560}>
                 {d => <BarChartCard data={d} horizontal />}
               </Slot>
             </Grid>
@@ -172,24 +150,37 @@ export default function App() {
           </Grid>
         </Section>
 
-        {/* ── Time Trends ─────────────────────────────────────────────────── */}
-        {/* Revenue by Quarter: always shows all quarters; filtered by year only.
-            Quarter / month from the global bar are intentionally not applied here —
-            you cannot slice a dimension that is already on the row axis. */}
-        <Section title="Time Trends">
-          <Slot state={taggedYear(byQuarter)} height={520}>
-            {d => <BarChartCard data={d} />}
-          </Slot>
+        {/* ── 3. Revenue Trends ───────────────────────────────────────────── */}
+        {/*
+            Left:  long-term trend — Revenue & Units over all periods (no date slicer,
+                   shows the full history at whatever granularity SSAS returns).
+            Right: within-year quarterly distribution — year-filtered only.
+                   Quarter/month slicers cannot be applied here because Quarter is
+                   already the row dimension (all 4 bars are always visible).
+        */}
+        <Section title="Revenue Trends">
+          <Grid container spacing={5}>
+            <Grid item xs={12} lg={7}>
+              <Slot state={overTime} height={500}>
+                {d => <ComboChartCard data={d} />}
+              </Slot>
+            </Grid>
+            <Grid item xs={12} lg={5}>
+              <Slot state={taggedYear(byQuarter)} height={500}>
+                {d => <BarChartCard data={d} />}
+              </Slot>
+            </Grid>
+          </Grid>
         </Section>
 
-        {/* ── Tax & Finance ───────────────────────────────────────────────── */}
+        {/* ── 4. Tax & Finance ────────────────────────────────────────────── */}
         <Section title="Tax & Finance">
           <Slot state={tagged(tax)} height={460}>
             {d => <BarChartCard data={d} horizontal />}
           </Slot>
         </Section>
 
-        {/* ── Top Rankings ────────────────────────────────────────────────── */}
+        {/* ── 5. Top Rankings ─────────────────────────────────────────────── */}
         <Section title="Top Rankings">
           <Grid container spacing={5}>
             <Grid item xs={12} md={4}>

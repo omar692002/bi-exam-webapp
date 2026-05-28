@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Box, Card, CardContent, Typography } from '@mui/material'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -10,6 +11,10 @@ function seriesMax(series) {
 }
 
 export default function BarChartCard({ data, horizontal = false }) {
+  const [hidden, setHidden] = useState({})
+  const toggleSeries = ({ dataKey }) =>
+    setHidden(h => ({ ...h, [dataKey]: !h[dataKey] }))
+
   const rows = toChartRows(data.labels, data.series)
 
   if (data.labels.length === 0) {
@@ -72,7 +77,11 @@ export default function BarChartCard({ data, horizontal = false }) {
                 layout="horizontal"
                 align="center"
                 iconSize={10}
-                wrapperStyle={{ paddingTop: 24, fontSize: 12 }}
+                onClick={toggleSeries}
+                wrapperStyle={{ paddingTop: 24, fontSize: 12, cursor: 'pointer' }}
+                formatter={(value) => (
+                  <span style={{ opacity: hidden[value] ? 0.4 : 1 }}>{value}</span>
+                )}
               />
 
               {data.series.map((s, i) => (
@@ -82,6 +91,7 @@ export default function BarChartCard({ data, horizontal = false }) {
                   fill={COLORS[i % COLORS.length]}
                   radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
                   maxBarSize={horizontal ? 32 : undefined}
+                  hide={!!hidden[s.name]}
                   {...(dual ? { yAxisId: i === 0 ? 'left' : 'right' } : {})}
                 />
               ))}

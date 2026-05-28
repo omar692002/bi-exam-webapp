@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Box, Card, CardContent, Typography } from '@mui/material'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
@@ -6,6 +7,10 @@ import {
 import { COLORS, tickFmt, toChartRows } from './chartUtils'
 
 export default function ComboChartCard({ data }) {
+  const [hidden, setHidden] = useState({})
+  const toggleSeries = ({ dataKey }) =>
+    setHidden(h => ({ ...h, [dataKey]: !h[dataKey] }))
+
   const rows = toChartRows(data.labels, data.series)
 
   if (data.labels.length === 0) {
@@ -28,7 +33,7 @@ export default function ComboChartCard({ data }) {
     <Card elevation={0} variant="outlined" sx={{ width: '100%', height: '100%', overflow: 'visible' }}>
       <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
         <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>{data.title}</Typography>
-        <ResponsiveContainer width="100%" height={520}>
+        <ResponsiveContainer width="100%" height={440}>
           <ComposedChart data={rows} margin={{ top: 8, right: 30, left: 20, bottom: 80 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
@@ -45,7 +50,11 @@ export default function ComboChartCard({ data }) {
               layout="horizontal"
               align="center"
               iconSize={10}
-              wrapperStyle={{ paddingTop: 24, fontSize: 12 }}
+              onClick={toggleSeries}
+              wrapperStyle={{ paddingTop: 24, fontSize: 12, cursor: 'pointer' }}
+              formatter={(value) => (
+                <span style={{ opacity: hidden[value] ? 0.4 : 1 }}>{value}</span>
+              )}
             />
 
             {/* First series → bars */}
@@ -55,10 +64,11 @@ export default function ComboChartCard({ data }) {
                 fill={COLORS[0]}
                 radius={[4, 4, 0, 0]}
                 maxBarSize={48}
+                hide={!!hidden[data.series[0].name]}
               />
             )}
 
-            {/* Remaining series → lines connecting the bars */}
+            {/* Remaining series → lines */}
             {data.series.slice(1).map((s, i) => (
               <Line
                 key={s.name}
@@ -68,6 +78,7 @@ export default function ComboChartCard({ data }) {
                 strokeWidth={2.5}
                 dot={{ r: 4, fill: COLORS[i + 1] }}
                 activeDot={{ r: 6 }}
+                hide={!!hidden[s.name]}
               />
             ))}
           </ComposedChart>
