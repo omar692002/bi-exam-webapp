@@ -46,7 +46,7 @@ export default function BarChartCard({ data, horizontal = false }) {
     <Card elevation={0} variant="outlined" sx={{ width: '100%', height: '100%', overflow: 'visible' }}>
       <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
         <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>{data.title}</Typography>
-        <Box sx={{ width: '100%', minWidth: 420, overflowX: 'auto' }}>
+        <Box sx={{ width: '100%', minWidth: 0 }}>
           <ResponsiveContainer width="100%" height={horizontal ? 580 : 520}>
             <BarChart
               data={rows}

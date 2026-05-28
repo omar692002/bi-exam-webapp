@@ -23,6 +23,7 @@ function Slot({ state, height = 300, children }) {
   if (state.data === null) return <Loader height={height} />
   return (
     <Box sx={{
+      width: '100%',
       opacity: state.loading ? 0.5 : 1,
       transition: 'opacity 0.2s ease',
       pointerEvents: state.loading ? 'none' : 'auto',
@@ -125,29 +126,32 @@ export default function App() {
         </Section>
 
         {/* ── 2. Sales Analysis ───────────────────────────────────────────── */}
+        {/* CSS Grid — no MUI negative-margin trick, items fill cells natively */}
         <Section title="Sales Analysis">
-          <Grid container spacing={5}>
-            <Grid item xs={12} md={6}>
+          <Box sx={{ display: 'grid', gap: 4 }}>
+            <Box>
               <Slot state={tagged(byCategory)} height={560}>
                 {d => <BarChartCard data={d} horizontal />}
               </Slot>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </Box>
+            <Box>
               <Slot state={tagged(byProduct)} height={560}>
                 {d => <BarChartCard data={d} horizontal />}
               </Slot>
-            </Grid>
-            <Grid item xs={12} lg={8}>
-              <Slot state={tagged(byCountry)} height={560}>
-                {d => <BarChartCard data={d} horizontal />}
-              </Slot>
-            </Grid>
-            <Grid item xs={12} lg={4}>
-              <Slot state={tagged(byType)} height={520}>
-                {d => <PieChartCard data={d} />}
-              </Slot>
-            </Grid>
-          </Grid>
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, gap: 4 }}>
+              <Box>
+                <Slot state={tagged(byCountry)} height={560}>
+                  {d => <BarChartCard data={d} horizontal />}
+                </Slot>
+              </Box>
+              <Box>
+                <Slot state={tagged(byType)} height={520}>
+                  {d => <PieChartCard data={d} />}
+                </Slot>
+              </Box>
+            </Box>
+          </Box>
         </Section>
 
         {/* ── 3. Revenue Trends ───────────────────────────────────────────── */}
@@ -177,18 +181,19 @@ export default function App() {
         </Section>
 
         {/* ── 5. Top Rankings ─────────────────────────────────────────────── */}
+        {/* CSS Grid — 2 equal columns on md+, single column on mobile */}
         <Section title="Top Rankings">
-          <Grid container spacing={5}>
-            <Grid item xs={12} md={4}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 4 }}>
+            <Box>
               <Slot state={topCustomers}>{d => <DataTable data={d} />}</Slot>
-            </Grid>
-            <Grid item xs={12} md={4}>
+            </Box>
+            <Box>
               <Slot state={topProducts}>{d => <DataTable data={d} />}</Slot>
-            </Grid>
-            <Grid item xs={12} md={4}>
+            </Box>
+            <Box>
               <Slot state={topEmployees}>{d => <DataTable data={d} />}</Slot>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Section>
       </Box>
     </ThemeProvider>

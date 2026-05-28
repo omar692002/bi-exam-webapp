@@ -42,7 +42,7 @@ export default function ComboChartCard({ data }) {
       <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
         <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>{data.title}</Typography>
         {/* minWidth prevents ResponsiveContainer from collapsing in narrow containers */}
-        <Box sx={{ width: '100%', minWidth: 420, overflowX: 'auto' }}>
+        <Box sx={{ width: '100%', minWidth: 0 }}>
         <ResponsiveContainer width="100%" height={440}>
           <ComposedChart data={rows} margin={{ top: 8, right: dual ? 20 : 20, left: 20, bottom: 80 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

@@ -57,7 +57,7 @@ function PrimaryCell({ value, max }) {
 export default function DataTable({ data }) {
   if (!data?.rows?.length) {
     return (
-      <Card elevation={0} variant="outlined" sx={{ overflow: 'hidden' }}>
+      <Card elevation={0} variant="outlined" sx={{ overflow: 'hidden', width: '100%' }}>
         <Box sx={{ bgcolor: '#1e3a5f', px: 2.5, py: 1.5 }}>
           <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>{data?.title}</Typography>
         </Box>
@@ -78,7 +78,7 @@ export default function DataTable({ data }) {
     : 0
 
   return (
-    <Card elevation={0} variant="outlined" sx={{ overflow: 'hidden' }}>
+    <Card elevation={0} variant="outlined" sx={{ overflow: 'hidden', width: '100%' }}>
       {/* Coloured header strip */}
       <Box sx={{ bgcolor: '#1e3a5f', px: 2.5, py: 1.5 }}>
         <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>{data.title}</Typography>
