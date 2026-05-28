@@ -152,25 +152,21 @@ export default function App() {
 
         {/* ── 3. Revenue Trends ───────────────────────────────────────────── */}
         {/*
-            Left:  long-term trend — Revenue & Units over all periods (no date slicer,
-                   shows the full history at whatever granularity SSAS returns).
-            Right: within-year quarterly distribution — year-filtered only.
-                   Quarter/month slicers cannot be applied here because Quarter is
-                   already the row dimension (all 4 bars are always visible).
+            Top:    long-term trend — Revenue & Units over all periods.
+            Bottom: within-year quarterly distribution — year-filtered only.
+                    Quarter/month slicers cannot be applied because Quarter is
+                    already the row dimension (all 4 bars always visible).
+            Both charts are full-width so dual Y-axes have enough horizontal room.
         */}
         <Section title="Revenue Trends">
-          <Grid container spacing={5}>
-            <Grid item xs={12} lg={7}>
-              <Slot state={overTime} height={500}>
-                {d => <ComboChartCard data={d} />}
-              </Slot>
-            </Grid>
-            <Grid item xs={12} lg={5}>
-              <Slot state={taggedYear(byQuarter)} height={500}>
-                {d => <ComboChartCard data={d} />}
-              </Slot>
-            </Grid>
-          </Grid>
+          <Box mb={5}>
+            <Slot state={overTime} height={500}>
+              {d => <ComboChartCard data={d} />}
+            </Slot>
+          </Box>
+          <Slot state={taggedYear(byQuarter)} height={460}>
+            {d => <ComboChartCard data={d} />}
+          </Slot>
         </Section>
 
         {/* ── 4. Tax & Finance ────────────────────────────────────────────── */}

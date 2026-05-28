@@ -41,8 +41,10 @@ export default function ComboChartCard({ data }) {
     <Card elevation={0} variant="outlined" sx={{ width: '100%', height: '100%', overflow: 'visible' }}>
       <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
         <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>{data.title}</Typography>
+        {/* minWidth prevents ResponsiveContainer from collapsing in narrow containers */}
+        <Box sx={{ width: '100%', minWidth: 420, overflowX: 'auto' }}>
         <ResponsiveContainer width="100%" height={440}>
-          <ComposedChart data={rows} margin={{ top: 8, right: dual ? 75 : 30, left: 20, bottom: 80 }}>
+          <ComposedChart data={rows} margin={{ top: 8, right: dual ? 20 : 20, left: 20, bottom: 80 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
               dataKey="name"
@@ -59,14 +61,14 @@ export default function ComboChartCard({ data }) {
                   yAxisId="left"
                   tickFormatter={tickFmt}
                   tick={{ fontSize: 11 }}
-                  width={65}
+                  width={60}
                 />
                 <YAxis
                   yAxisId="right"
                   orientation="right"
                   tickFormatter={tickFmt}
                   tick={{ fontSize: 11 }}
-                  width={65}
+                  width={55}
                 />
               </>
             ) : (
@@ -113,6 +115,7 @@ export default function ComboChartCard({ data }) {
             ))}
           </ComposedChart>
         </ResponsiveContainer>
+        </Box>
       </CardContent>
     </Card>
   )
