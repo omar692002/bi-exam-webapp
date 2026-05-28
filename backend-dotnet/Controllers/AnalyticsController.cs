@@ -69,4 +69,7 @@ public sealed class AnalyticsController : ControllerBase
         [FromQuery] int n = 10,
         [FromQuery] string? year = null, [FromQuery] string? quarter = null, [FromQuery] string? month = null)
         => _service.TopEmployees(Math.Clamp(n, 1, 100), Tf(year, quarter, month));
+
+    [HttpGet("years")]
+    public IReadOnlyList<string> Years() => _service.AvailableYears();
 }

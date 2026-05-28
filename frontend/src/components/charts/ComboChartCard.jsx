@@ -1,4 +1,4 @@
-import { Card, CardContent, Typography } from '@mui/material'
+import { Box, Card, CardContent, Typography } from '@mui/material'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
@@ -7,6 +7,22 @@ import { COLORS, tickFmt, toChartRows } from './chartUtils'
 
 export default function ComboChartCard({ data }) {
   const rows = toChartRows(data.labels, data.series)
+
+  if (data.labels.length === 0) {
+    return (
+      <Card elevation={0} variant="outlined" sx={{ width: '100%', height: '100%', overflow: 'visible' }}>
+        <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
+          <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>{data.title}</Typography>
+          <Box sx={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            height: 460, color: 'text.disabled',
+          }}>
+            <Typography variant="body2" sx={{ fontStyle: 'italic' }}>No data for this selection</Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card elevation={0} variant="outlined" sx={{ width: '100%', height: '100%', overflow: 'visible' }}>

@@ -12,13 +12,21 @@ function seriesMax(series) {
 export default function BarChartCard({ data, horizontal = false }) {
   const rows = toChartRows(data.labels, data.series)
 
-  // Debug: log what the API returned so mismatches are visible in the console
-  console.log('[BarChartCard]', data.title, {
-    labels: data.labels,
-    seriesNames: data.series.map(s => s.name),
-    rowCount: rows.length,
-    sampleRow: rows[0],
-  })
+  if (data.labels.length === 0) {
+    return (
+      <Card elevation={0} variant="outlined" sx={{ width: '100%', height: '100%' }}>
+        <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
+          <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>{data.title}</Typography>
+          <Box sx={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            height: 260, color: 'text.disabled', flexDirection: 'column', gap: 1,
+          }}>
+            <Typography variant="body2" sx={{ fontStyle: 'italic' }}>No data for this selection</Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    )
+  }
 
   // Dual-axis when the two series differ by more than 5×  (either direction)
   const ratio = data.series.length >= 2

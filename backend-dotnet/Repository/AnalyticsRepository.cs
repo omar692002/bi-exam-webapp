@@ -8,6 +8,21 @@ public sealed class AnalyticsRepository
     private readonly SsasClient _ssas;
     private readonly ResultSetMapper _mapper;
 
+    // SSAS month attribute uses integer keys 1–12; English names sent from the UI must be mapped.
+    private static readonly Dictionary<string, int> MonthKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["January"]=1,  ["February"]=2,  ["March"]=3,
+        ["April"]=4,    ["May"]=5,       ["June"]=6,
+        ["July"]=7,     ["August"]=8,    ["September"]=9,
+        ["October"]=10, ["November"]=11, ["December"]=12,
+    };
+
+    // SSAS quarter attribute uses integer keys 1–4; "Q1"–"Q4" sent from the UI must be mapped.
+    private static readonly Dictionary<string, int> QuarterKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Q1"]=1, ["Q2"]=2, ["Q3"]=3, ["Q4"]=4,
+    };
+
     public AnalyticsRepository(SsasClient ssas, ResultSetMapper mapper)
     {
         _ssas = ssas;
@@ -21,7 +36,8 @@ public sealed class AnalyticsRepository
         if (!tf.IsEmpty)
         {
             var slicers = BuildSlicers(tf);
-            sb.Append(" WHERE (").Append(string.Join(", ", slicers)).Append(')');
+            if (slicers.Count > 0)
+                sb.Append(" WHERE (").Append(string.Join(", ", slicers)).Append(')');
         }
         var rows = _ssas.Execute(sb.ToString());
         if (rows.Count == 0) return 0d;
@@ -61,6 +77,21 @@ public sealed class AnalyticsRepository
         return _mapper.ToTable(_ssas.Execute(builder.Build()), title, rowHeader);
     }
 
+    /// <summary>Returns the distinct year member names available in the cube.</summary>
+    public IReadOnlyList<string> YearList()
+    {
+        var mdx = $"SELECT NON EMPTY {{{MdxConstants.M_REVENUE}}} ON COLUMNS, " +
+                  $"NON EMPTY {MdxConstants.DATE_YEAR}.Members ON ROWS FROM {MdxConstants.CUBE}";
+        var rows = _ssas.Execute(mdx);
+        if (rows.Count == 0) return Array.Empty<string>();
+        var labelKey = rows[0].Keys.FirstOrDefault(k => !k.Contains("[Measures]"));
+        if (labelKey is null) return Array.Empty<string>();
+        return rows
+            .Select(r => r[labelKey]?.ToString() ?? "")
+            .Where(s => !string.IsNullOrEmpty(s))
+            .ToList();
+    }
+
     private void ApplyFilters(MdxQueryBuilder builder, TimeFilter tf)
     {
         foreach (var s in BuildSlicers(tf)) builder.Filter(s);
@@ -71,10 +102,25 @@ public sealed class AnalyticsRepository
         var slicers = new List<string>();
         if (tf.HasYear)
             slicers.Add($"{MdxConstants.DATE_YEAR}.[{tf.Year}]");
+
         if (tf.HasMonth)
-            slicers.Add($"{MdxConstants.DATE_MONTH}.[{tf.Month}]");
+        {
+            // Use key-based (&[n]) access — more reliable than name-based when the SSAS
+            // month attribute stores integer keys (1–12) with localized member names.
+            if (MonthKeys.TryGetValue(tf.Month, out var mKey))
+                slicers.Add($"{MdxConstants.DATE_MONTH}.&[{mKey}]");
+            else
+                slicers.Add($"{MdxConstants.DATE_MONTH}.[{tf.Month}]");
+        }
         else if (tf.HasQuarter)
-            slicers.Add($"{MdxConstants.DATE_QUARTER}.[{tf.Quarter}]");
+        {
+            // Same key-based approach for quarters (keys 1–4).
+            if (QuarterKeys.TryGetValue(tf.Quarter, out var qKey))
+                slicers.Add($"{MdxConstants.DATE_QUARTER}.&[{qKey}]");
+            else
+                slicers.Add($"{MdxConstants.DATE_QUARTER}.[{tf.Quarter}]");
+        }
+
         return slicers;
     }
 

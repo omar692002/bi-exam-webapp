@@ -1,5 +1,5 @@
 import {
-  Card, CardContent, Table, TableBody, TableCell,
+  Box, Card, CardContent, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Typography,
 } from '@mui/material'
 
@@ -7,7 +7,21 @@ const fmtCell = v =>
   typeof v === 'number' ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : v ?? ''
 
 export default function DataTable({ data }) {
-  if (!data?.rows?.length) return null
+  if (!data?.rows?.length) {
+    return (
+      <Card elevation={0} variant="outlined">
+        <CardContent>
+          <Typography variant="subtitle1" gutterBottom>{data?.title}</Typography>
+          <Box sx={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            height: 120, color: 'text.disabled',
+          }}>
+            <Typography variant="body2" sx={{ fontStyle: 'italic' }}>No data for this selection</Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card elevation={0} variant="outlined">

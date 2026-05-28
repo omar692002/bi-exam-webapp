@@ -70,4 +70,6 @@ public sealed class AnalyticsService
         _repo.TopN($"Top {n} Sales Reps", "Employee",
             MdxConstants.EMPLOYEE_ID, n, tf,
             MdxConstants.M_REVENUE, MdxConstants.M_REVENUE, MdxConstants.M_ORDER_LINES);
+
+    public IReadOnlyList<string> AvailableYears() => _repo.YearList();
 }

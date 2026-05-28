@@ -8,6 +8,7 @@ const tp = (year, quarter, month) => ({
   ...(month   ? { month }   : {}),
 })
 
+export const getAvailableYears  = ()         => http.get('/analytics/years').then(r => r.data)
 export const getKpis            = (y, q, m) => http.get('/analytics/kpis',                 { params: tp(y, q, m) }).then(r => r.data)
 export const getRevenueOverTime = ()         => http.get('/analytics/revenue-over-time').then(r => r.data)
 

@@ -13,16 +13,15 @@ import ErrorBanner from './components/common/ErrorBanner'
 import Section     from './components/common/Section'
 import Loader      from './components/common/Loader'
 
-import KpiCard      from './components/kpi/KpiCard'
+import KpiCard        from './components/kpi/KpiCard'
 import ComboChartCard from './components/charts/ComboChartCard'
-import BarChartCard  from './components/charts/BarChartCard'
-import PieChartCard  from './components/charts/PieChartCard'
-import DataTable     from './components/tables/DataTable'
+import BarChartCard   from './components/charts/BarChartCard'
+import PieChartCard   from './components/charts/PieChartCard'
+import DataTable      from './components/tables/DataTable'
 
 /**
  * Keeps stale data visible (dimmed) while a refetch is in flight.
  * Only falls back to <Loader> on the very first load (data === null).
- * This prevents layout shifts and size glitches when filters change.
  */
 function Slot({ state, height = 300, children }) {
   if (state.data === null) return <Loader height={height} />
@@ -42,23 +41,42 @@ export default function App() {
   const [quarter, setQuarter] = useState('')
   const [month,   setMonth]   = useState('')
 
+  // Full filter tuple — used by charts that support all three dimensions
   const f = [year, quarter, month]
 
-  // Revenue over time is year-level — intentionally never re-filtered
-  const overTime     = useData(api.getRevenueOverTime, [])
+  // --- Data fetching -----------------------------------------------------------
 
-  const kpis         = useData(() => api.getKpis(...f),                f)
-  const byCategory   = useData(() => api.getSalesByCategory(...f),     f)
-  const byCountry    = useData(() => api.getSalesByCountry(...f),      f)
-  const byProduct    = useData(() => api.getSalesByProduct(...f),      f)
-  const byType       = useData(() => api.getSalesByCustomerType(...f), f)
-  const byQuarter    = useData(() => api.getRevenueByQuarter(...f),    f)
-  const tax          = useData(() => api.getTaxAnalysis(...f),         f)
-  const topCustomers = useData(() => api.getTopCustomers(10, ...f),    f)
-  const topProducts  = useData(() => api.getTopProducts(10, ...f),     f)
-  const topEmployees = useData(() => api.getTopEmployees(10, ...f),    f)
+  // Available years come from a dedicated endpoint, not from the chart data.
+  const yearsData     = useData(api.getAvailableYears, [])
+  const availableYears = yearsData.data ?? []
 
-  const availableYears = overTime.data?.labels ?? []
+  // Revenue Overview: monthly breakdown — only year makes sense as a filter here
+  // (filtering by month would collapse the chart to a single bar; by quarter to 3).
+  const overTime = useData(api.getRevenueOverTime, [])
+
+  // Key Metrics KPIs: full filter (year / quarter / month)
+  const kpis = useData(() => api.getKpis(...f), f)
+
+  // Sales Analysis: full filter
+  const byCategory = useData(() => api.getSalesByCategory(...f),     f)
+  const byCountry  = useData(() => api.getSalesByCountry(...f),      f)
+  const byProduct  = useData(() => api.getSalesByProduct(...f),      f)
+  const byType     = useData(() => api.getSalesByCustomerType(...f), f)
+
+  // Time Trends – Revenue by Quarter: only year is meaningful here.
+  // Filtering by quarter would conflict with the row dimension (all quarters on rows);
+  // filtering by month makes no sense on a quarterly chart.
+  const byQuarter = useData(() => api.getRevenueByQuarter(year, '', ''), [year])
+
+  // Tax & Finance: full filter
+  const tax = useData(() => api.getTaxAnalysis(...f), f)
+
+  // Top Rankings: full filter
+  const topCustomers = useData(() => api.getTopCustomers(10, ...f), f)
+  const topProducts  = useData(() => api.getTopProducts(10, ...f),  f)
+  const topEmployees = useData(() => api.getTopEmployees(10, ...f), f)
+
+  // --- Loading / error state ---------------------------------------------------
 
   const filterDependent = [
     kpis, byCategory, byCountry, byProduct, byType,
@@ -67,12 +85,21 @@ export default function App() {
   const isLoading = filterDependent.some(d => d.loading)
   const errors    = [...filterDependent, overTime].filter(d => d.error).map(d => d.error)
 
-  // Appends the active filter label to a chart title without mutating state
-  const label = [year, quarter, month].filter(Boolean).join(' · ')
-  const tagged = (state) => {
-    if (!state.data || !label) return state
-    return { ...state, data: { ...state.data, title: `${state.data.title} — ${label}` } }
+  // --- Helpers -----------------------------------------------------------------
+
+  // Appends the active filter label to a chart title.
+  // `dims` controls which filter dimensions contribute to the label.
+  const activeLabel   = (dims) => dims.filter(Boolean).join(' · ')
+  const tagChart = (state, dims) => {
+    const lbl = activeLabel(dims)
+    if (!state.data || !lbl) return state
+    return { ...state, data: { ...state.data, title: `${state.data.title} — ${lbl}` } }
   }
+
+  // Full label: year · quarter · month
+  const tagged     = (state) => tagChart(state, [year, quarter, month])
+  // Year-only label (for Time Trends charts that only use year)
+  const taggedYear = (state) => tagChart(state, [year])
 
   return (
     <ThemeProvider theme={theme}>
@@ -112,6 +139,7 @@ export default function App() {
         </Section>
 
         {/* ── Revenue Overview ────────────────────────────────────────────── */}
+        {/* Not filterable by quarter/month — filtering by year only makes sense here */}
         <Section title="Revenue Overview">
           <Slot state={overTime} height={520}>
             {d => <ComboChartCard data={d} />}
@@ -145,8 +173,11 @@ export default function App() {
         </Section>
 
         {/* ── Time Trends ─────────────────────────────────────────────────── */}
+        {/* Revenue by Quarter: always shows all quarters; filtered by year only.
+            Quarter / month from the global bar are intentionally not applied here —
+            you cannot slice a dimension that is already on the row axis. */}
         <Section title="Time Trends">
-          <Slot state={tagged(byQuarter)} height={520}>
+          <Slot state={taggedYear(byQuarter)} height={520}>
             {d => <BarChartCard data={d} />}
           </Slot>
         </Section>

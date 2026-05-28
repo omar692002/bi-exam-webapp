@@ -1,4 +1,4 @@
-import { Card, CardContent, Typography } from '@mui/material'
+import { Box, Card, CardContent, Typography } from '@mui/material'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { COLORS } from './chartUtils'
 
@@ -7,6 +7,22 @@ export default function PieChartCard({ data }) {
     name,
     value: data.series[0]?.data[i] ?? 0,
   }))
+
+  if (data.labels.length === 0) {
+    return (
+      <Card elevation={0} variant="outlined" sx={{ height: '100%', overflow: 'visible' }}>
+        <CardContent sx={{ p: 3.5, '&:last-child': { pb: 3.5 } }}>
+          <Typography variant="h6" gutterBottom sx={{ mb: 2.5 }}>{data.title}</Typography>
+          <Box sx={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            height: 360, color: 'text.disabled',
+          }}>
+            <Typography variant="body2" sx={{ fontStyle: 'italic' }}>No data for this selection</Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card elevation={0} variant="outlined" sx={{ height: '100%', overflow: 'visible' }}>
