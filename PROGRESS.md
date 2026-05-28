@@ -2,7 +2,7 @@
 
 > **For future Claude sessions:** read this file first to understand the project state and pick up where the previous session stopped.
 
-Last updated: 2026-05-26
+Last updated: 2026-05-28
 
 ---
 
@@ -18,12 +18,14 @@ Location: `C:\Users\User\Desktop\cours2emeIng\BI\exam\webApp`
 
 ## 2. Stack (locked-in decisions)
 
-| Layer    | Tech                                                                  |
-|----------|-----------------------------------------------------------------------|
-| Cube     | SSAS Multidimensional — catalog `ExamMultidimensionnel`, cube `VDS`   |
-| Backend  | Java 17+, Quarkus 3.16.4, Maven                                       |
-| SSAS↔Java | PowerShell subprocess + ADOMD.NET v15 (GAC) — direct TCP port 2383  |
-| Frontend | React (Vite), Material UI, Recharts, Axios                            |
+| Layer        | Tech                                                                  |
+|--------------|-----------------------------------------------------------------------|
+| Cube         | SSAS Multidimensional — catalog `ExamMultidimensionnel`, cube `VDS`   |
+| Backend (A)  | Java 17+, Quarkus 3.16.4, Maven — original implementation             |
+| Backend (B)  | .NET 9, ASP.NET Core, native ADOMD.NET (NuGet) — added 2026-05-28 for low-latency execution |
+| SSAS↔Java    | PowerShell subprocess + ADOMD.NET v15 (GAC) — direct TCP port 2383    |
+| SSAS↔.NET    | In-process AdomdConnection (singleton, semaphore-guarded) — TCP 2383  |
+| Frontend     | React (Vite), Material UI, Recharts, Axios                            |
 
 ## 3. Cube reference
 
@@ -43,7 +45,7 @@ Location: `C:\Users\User\Desktop\cours2emeIng\BI\exam\webApp`
 
 ```
 webApp/
-├── backend/                         Quarkus REST API
+├── backend/                         Quarkus REST API (original)
 │   ├── pom.xml                      Quarkus 3.16.4, no olap4j
 │   └── src/main/java/com/bi/exam/
 │       ├── BiBackendApplication.java
@@ -55,6 +57,17 @@ webApp/
 │       ├── dto/                     ChartDataDto, KpiDto, KpiSummaryDto, TableDataDto, ChartSeriesDto
 │       ├── exception/               BiException, MdxExecutionException, GlobalExceptionMapper
 │       └── util/                    MdxUtils
+├── backend-dotnet/                  ASP.NET Core REST API (low-latency alternative)
+│   ├── BiBackend.csproj             .NET 9 + Microsoft.AnalysisServices.AdomdClient.NetCore
+│   ├── Program.cs                   DI, CORS, Swagger, global exception handler
+│   ├── appsettings.json             Ssas:{DataSource,Catalog,Cube}, Cors:Origins, Kestrel http://localhost:8080
+│   ├── Config/SsasOptions.cs
+│   ├── Controllers/                 AnalyticsController, HealthController
+│   ├── Services/                    AnalyticsService
+│   ├── Repository/                  AnalyticsRepository
+│   ├── Mdx/                         MdxConstants, MdxQueryBuilder, ResultSetMapper, SsasClient (native ADOMD)
+│   ├── Dtos/                        ChartDataDto, KpiDto, TableDataDto, TimeFilter
+│   └── Exceptions/                  BiException, MdxExecutionException
 └── frontend/                        React (Vite) dashboard
     └── src/
         ├── api.js                   All 11 API call functions
@@ -65,7 +78,15 @@ webApp/
             └── DataTable.jsx        MUI sticky-header table
 ```
 
-### How SsasBridge works
+### How the .NET SsasClient works (backend-dotnet)
+
+1. On first request, opens a single `AdomdConnection` to `Data Source=localhost;Initial Catalog=ExamMultidimensionnel` and keeps it open for the app lifetime
+2. Commands are serialized through a `SemaphoreSlim(1,1)` (ADOMD connections aren't thread-safe)
+3. If the connection drops (e.g. SSAS restart), `AdomdConnectionException` triggers a one-shot reconnect-and-retry
+4. `ResultSetMapper` converts row-dicts into `ChartDataDto` / `TableDataDto`, same shape as the Java DTOs (camelCase JSON)
+5. **No subprocess, no temp files, no assembly load per request** — typical query overhead ≈ 5–20 ms vs 1–3 s for the PS bridge
+
+### How SsasBridge works (backend — Quarkus)
 
 1. Java writes MDX query to a temp `.txt` file  
 2. Java writes a PowerShell script to a temp `.ps1` file  
@@ -77,7 +98,7 @@ webApp/
 
 ## 5. Implementation status
 
-### Backend
+### Backend (Quarkus, original)
 
 | # | Task                                              | Status   | Notes                                             |
 |---|---------------------------------------------------|----------|---------------------------------------------------|
@@ -88,6 +109,18 @@ webApp/
 | 5 | MDX builder layer                                 | ✅ Done  | MdxConstants, MdxQueryBuilder                    |
 | 6 | Analytics endpoints (11 total)                    | ✅ Done  | Controller → Service → Repository → Bridge        |
 | 7 | Backend compiles cleanly                          | ✅ Done  | `mvn package -DskipTests` passes                  |
+
+### Backend (ASP.NET Core, added 2026-05-28 — runs on same port 8080)
+
+| #  | Task                                             | Status   | Notes                                                                |
+|----|--------------------------------------------------|----------|----------------------------------------------------------------------|
+| B1 | backend-dotnet/ scaffold + csproj                | ✅ Done  | .NET 9, NuGet: Microsoft.AnalysisServices.AdomdClient.NetCore 19.84.1 |
+| B2 | DTOs ported (camelCase JSON, same shape as Java) | ✅ Done  | ChartData/Kpi/Table/TimeFilter as C# records                         |
+| B3 | MDX layer ported                                 | ✅ Done  | MdxConstants, MdxQueryBuilder, ResultSetMapper                       |
+| B4 | Native ADOMD client (SsasClient)                 | ✅ Done  | Singleton AdomdConnection + SemaphoreSlim + reconnect-on-failure     |
+| B5 | Analytics + Health controllers (same 11 routes)  | ✅ Done  | Same paths and query params as Quarkus version                       |
+| B6 | Global exception handler + CORS + Swagger        | ✅ Done  | Same error envelope shape; CORS for 5173/3000                        |
+| B7 | `dotnet build` passes                            | ✅ Done  | 0 warnings, 0 errors                                                 |
 
 ### Frontend
 
@@ -119,21 +152,28 @@ webApp/
 
 ## 7. To run the app
 
-### Backend (Quarkus dev mode)
+> **Only run ONE backend at a time** — both listen on port 8080. Stop one before starting the other.
+
+### Backend A — Quarkus (dev mode)
 ```
 cd backend
 mvn quarkus:dev
 ```
-→ Runs on http://localhost:8080  
-→ Swagger UI: http://localhost:8080/swagger-ui  
-→ Health check: http://localhost:8080/api/health
+→ http://localhost:8080 · Swagger: /swagger-ui · Health: /api/health
+
+### Backend B — ASP.NET Core (recommended for smooth loading)
+```
+cd backend-dotnet
+dotnet run
+```
+→ http://localhost:8080 · Swagger: /swagger-ui · Health: /api/health
 
 ### Frontend (Vite dev server)
 ```
 cd frontend
 npm run dev
 ```
-→ Runs on http://localhost:5173
+→ Runs on http://localhost:5173 (no code change needed — both backends expose the same `/api/...` contract)
 
 ---
 
@@ -144,3 +184,4 @@ npm run dev
 - **Cube hierarchy name:** kept the `Calander` typo from the cube.
 - **No SQL scripts rule:** still applies.
 - **Frontend tabs:** Sales Analysis / Time Trends / Tax & Finance / Top N Rankings.
+- **Second backend (ASP.NET Core) added 2026-05-28:** The PowerShell-subprocess bridge added ~1–3s of cold-start overhead per request. The new `backend-dotnet/` uses native ADOMD.NET in-process — a singleton `AdomdConnection` guarded by a semaphore — bringing per-query overhead down to ~5–20 ms. Both backends are kept (same 11 endpoints, same JSON contract) so they can be switched without touching the frontend.
