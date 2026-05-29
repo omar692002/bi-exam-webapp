@@ -44,11 +44,26 @@ public sealed class AnalyticsRepository
         return _mapper.ToDouble(rows[0].Values.First());
     }
 
+    // Months 1-12 in chronological order — NON EMPTY drops the empties while preserving order.
+    // (The Month attribute otherwise sorts alphabetically by its French caption.)
+    public static readonly string OrderedMonths =
+        "{" + string.Join(", ", Enumerable.Range(1, 12).Select(i => $"{MdxConstants.DATE_MONTH}.&[{i}]")) + "}";
+
     public ChartDataDto Chart(string title, string rowDimension, TimeFilter tf, params string[] measures)
     {
         var builder = MdxQueryBuilder.Create()
             .Measure(measures)
             .Rows(rowDimension);
+        ApplyFilters(builder, tf);
+        return _mapper.ToChart(_ssas.Execute(builder.Build()), title);
+    }
+
+    /// <summary>Chart over an explicit ordered ROWS set (e.g. chronological months).</summary>
+    public ChartDataDto ChartRowSet(string title, string rowSet, TimeFilter tf, params string[] measures)
+    {
+        var builder = MdxQueryBuilder.Create()
+            .Measure(measures)
+            .RowSet(rowSet);
         ApplyFilters(builder, tf);
         return _mapper.ToChart(_ssas.Execute(builder.Build()), title);
     }
@@ -75,6 +90,27 @@ public sealed class AnalyticsRepository
             .Top(n, orderMeasure);
         ApplyFilters(builder, tf);
         return _mapper.ToTable(_ssas.Execute(builder.Build()), title, rowHeader);
+    }
+
+    /// <summary>
+    /// Cross-tab: pivots a single measure across two dimensions (rowDim on rows,
+    /// colDim on columns). Built as a CrossJoin on the ROWS axis so the flat
+    /// rowset coming back from ADOMD maps cleanly via <see cref="ResultSetMapper.ToMatrix"/>.
+    /// Only the year slicer is honoured — colDim/rowDim may themselves be time levels.
+    /// </summary>
+    public MatrixDataDto Matrix(string title, string rowHeader,
+                                string rowDim, string rowToken,
+                                string colDim, string colToken,
+                                string measure, TimeFilter tf)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("SELECT NON EMPTY {").Append(measure).Append("} ON COLUMNS, ")
+          .Append("NON EMPTY (").Append(rowDim).Append(".Members * ")
+          .Append(colDim).Append(".Members) ON ROWS FROM ").Append(MdxConstants.CUBE);
+        if (tf.HasYear)
+            sb.Append(" WHERE (").Append(MdxConstants.DATE_YEAR).Append(".[").Append(tf.Year).Append("])");
+        var rows = _ssas.Execute(sb.ToString());
+        return _mapper.ToMatrix(rows, rowToken, colToken, title, rowHeader);
     }
 
     /// <summary>Returns the distinct year member names available in the cube.</summary>

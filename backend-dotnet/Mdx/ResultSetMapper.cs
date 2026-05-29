@@ -56,11 +56,52 @@ public sealed class ResultSetMapper
         return new TableDataDto(title, headers, data);
     }
 
+    /// <summary>
+    /// Pivots a flat CrossJoin rowset (rowDim × colDim with one measure) into a matrix.
+    /// The two non-measure columns are told apart by substring (<paramref name="rowToken"/>
+    /// vs <paramref name="colToken"/>, e.g. "Category Name" vs "Quarter").
+    /// </summary>
+    public MatrixDataDto ToMatrix(IReadOnlyList<Dictionary<string, object?>> rows,
+                                  string rowToken, string colToken, string title, string rowHeader)
+    {
+        if (rows.Count == 0)
+            return new MatrixDataDto(title, rowHeader, Array.Empty<string>(), Array.Empty<MatrixRowDto>());
+
+        var keys = rows[0].Keys;
+        var rowKey = keys.FirstOrDefault(k => !k.Contains("[Measures]") && k.Contains(rowToken));
+        var colKey = keys.FirstOrDefault(k => !k.Contains("[Measures]") && k.Contains(colToken));
+        var measKey = keys.FirstOrDefault(k => k.Contains("[Measures]"));
+        if (rowKey is null || colKey is null || measKey is null)
+            return new MatrixDataDto(title, rowHeader, Array.Empty<string>(), Array.Empty<MatrixRowDto>());
+
+        var valid = rows.Where(r => r[rowKey] is not null && r[colKey] is not null).ToList();
+
+        var colLabels = new List<string>();
+        var rowLabels = new List<string>();
+        var cells = new Dictionary<(string, string), double>();
+        foreach (var r in valid)
+        {
+            var rl = FormatLabel(r[rowKey]);
+            var cl = FormatLabel(r[colKey]);
+            if (!rowLabels.Contains(rl)) rowLabels.Add(rl);
+            if (!colLabels.Contains(cl)) colLabels.Add(cl);
+            cells[(rl, cl)] = ToDouble(r[measKey]);
+        }
+        colLabels.Sort(StringComparer.OrdinalIgnoreCase);
+
+        var matrixRows = rowLabels
+            .Select(rl => new MatrixRowDto(rl,
+                colLabels.Select(cl => cells.TryGetValue((rl, cl), out var v) ? v : 0d).ToList()))
+            .ToList();
+        return new MatrixDataDto(title, rowHeader, colLabels, matrixRows);
+    }
+
     private static List<Dictionary<string, object?>> SkipNullLabels(IReadOnlyList<Dictionary<string, object?>> rows)
     {
         if (rows.Count == 0) return new List<Dictionary<string, object?>>();
         var labelKey = FindLabelKey(rows[0]);
-        return rows.Where(r => r[labelKey] is not null).ToList();
+        // Drop the implicit "All" aggregate row (null caption) and any blank-captioned member.
+        return rows.Where(r => !string.IsNullOrWhiteSpace(r[labelKey]?.ToString())).ToList();
     }
 
     private static string FindLabelKey(Dictionary<string, object?> row)

@@ -2,17 +2,22 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
+  background: #FAF8F3;
   font-family: Inter, Roboto, 'Segoe UI', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-thumb { background: #d9cfc0; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #b9ac98; }
+
+/* Recharts focus outlines off for a cleaner look */
+.recharts-wrapper:focus, .recharts-surface:focus { outline: none; }

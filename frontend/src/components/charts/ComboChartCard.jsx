@@ -1,122 +1,81 @@
 import { useState } from 'react'
-import { Box, Card, CardContent, Typography } from '@mui/material'
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
+import ChartCard from './ChartCard'
+import AxisKey from './AxisKey'
 import { COLORS, tickFmt, toChartRows } from './chartUtils'
 
-function seriesMax(s) { return Math.max(1, ...(s?.data ?? [1])) }
+const seriesMax = s => Math.max(1, ...(s?.data ?? [1]))
 
-export default function ComboChartCard({ data }) {
+export default function ComboChartCard({ data, height = 420, subtitle, onSelect }) {
   const [hidden, setHidden] = useState({})
-  const toggleSeries = ({ dataKey }) =>
-    setHidden(h => ({ ...h, [dataKey]: !h[dataKey] }))
+  const toggleSeries = ({ dataKey }) => setHidden(h => ({ ...h, [dataKey]: !h[dataKey] }))
 
   const rows = toChartRows(data.labels, data.series)
-
-  // Use dual Y-axes when the two series differ by more than 5× — e.g. Revenue ($M) vs Units (K)
-  const ratio = data.series.length >= 2
-    ? seriesMax(data.series[0]) / seriesMax(data.series[1])
-    : 1
+  const ratio = data.series.length >= 2 ? seriesMax(data.series[0]) / seriesMax(data.series[1]) : 1
   const dual = data.series.length >= 2 && (ratio > 5 || ratio < 0.2)
 
-  if (data.labels.length === 0) {
-    return (
-      <Card elevation={0} variant="outlined" sx={{ width: '100%', height: '100%', overflow: 'visible' }}>
-        <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
-          <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>{data.title}</Typography>
-          <Box sx={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            height: 400, color: 'text.disabled',
-          }}>
-            <Typography variant="body2" sx={{ fontStyle: 'italic' }}>No data for this selection</Typography>
-          </Box>
-        </CardContent>
-      </Card>
-    )
-  }
+  const handleClick = onSelect
+    ? state => { const lbl = state?.activeLabel; if (lbl) onSelect(lbl) }
+    : undefined
 
   return (
-    <Card elevation={0} variant="outlined" sx={{ width: '100%', height: '100%', overflow: 'visible' }}>
-      <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
-        <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>{data.title}</Typography>
-        {/* minWidth prevents ResponsiveContainer from collapsing in narrow containers */}
-        <Box sx={{ width: '100%', minWidth: 0 }}>
-        <ResponsiveContainer width="100%" height={440}>
-          <ComposedChart data={rows} margin={{ top: 8, right: dual ? 20 : 20, left: 20, bottom: 80 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis
-              dataKey="name"
-              angle={-40}
-              textAnchor="end"
-              tick={{ fontSize: 10 }}
-              interval={0}
-              height={80}
+    <ChartCard
+      title={data.title}
+      subtitle={subtitle}
+      hint={onSelect ? 'Click a bar to drill in' : undefined}
+      axisKey={dual && data.series.length >= 2
+        ? <AxisKey left={data.series[0].name} right={data.series[1].name} leftColor={COLORS[0]} rightColor={COLORS[1]} />
+        : undefined}
+      empty={!data.labels.length}
+      emptyHeight={height - 40}
+    >
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart
+          data={rows}
+          onClick={handleClick}
+          margin={{ top: 8, right: 24, left: 16, bottom: 72 }}
+          style={onSelect ? { cursor: 'pointer' } : undefined}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#ECE5DA" vertical={false} />
+          <XAxis dataKey="name" angle={-38} textAnchor="end" tick={{ fontSize: 10, fill: '#6B6258' }} interval={0} height={78} />
+
+          {dual ? (
+            <>
+              <YAxis yAxisId="left"  tickFormatter={tickFmt} tick={{ fontSize: 11, fill: '#6B6258' }} width={58} />
+              <YAxis yAxisId="right" orientation="right" tickFormatter={tickFmt} tick={{ fontSize: 11, fill: COLORS[1] }} width={54} />
+            </>
+          ) : (
+            <YAxis tickFormatter={tickFmt} tick={{ fontSize: 11, fill: '#6B6258' }} />
+          )}
+
+          <Tooltip formatter={v => v?.toLocaleString()} cursor={{ fill: 'rgba(123,45,59,0.06)' }} />
+          <Legend
+            iconType="circle" iconSize={9} onClick={toggleSeries}
+            wrapperStyle={{ paddingTop: 18, fontSize: 12.5, cursor: 'pointer' }}
+            formatter={v => <span style={{ opacity: hidden[v] ? 0.4 : 1, color: '#2A2520' }}>{v}</span>}
+          />
+
+          {data.series[0] && (
+            <Bar
+              dataKey={data.series[0].name}
+              fill={COLORS[0]} radius={[5, 5, 0, 0]} maxBarSize={46}
+              hide={!!hidden[data.series[0].name]}
+              {...(dual ? { yAxisId: 'left' } : {})}
             />
-
-            {dual ? (
-              <>
-                <YAxis
-                  yAxisId="left"
-                  tickFormatter={tickFmt}
-                  tick={{ fontSize: 11 }}
-                  width={60}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  tickFormatter={tickFmt}
-                  tick={{ fontSize: 11 }}
-                  width={55}
-                />
-              </>
-            ) : (
-              <YAxis tickFormatter={tickFmt} tick={{ fontSize: 11 }} />
-            )}
-
-            <Tooltip formatter={v => v?.toLocaleString()} />
-            <Legend
-              layout="horizontal"
-              align="center"
-              iconSize={10}
-              onClick={toggleSeries}
-              wrapperStyle={{ paddingTop: 24, fontSize: 12, cursor: 'pointer' }}
-              formatter={(value) => (
-                <span style={{ opacity: hidden[value] ? 0.4 : 1 }}>{value}</span>
-              )}
+          )}
+          {data.series.slice(1).map((s, i) => (
+            <Line
+              key={s.name} type="monotone" dataKey={s.name}
+              stroke={COLORS[(i + 1) % COLORS.length]} strokeWidth={2.5}
+              dot={{ r: 3, fill: COLORS[(i + 1) % COLORS.length] }} activeDot={{ r: 6 }}
+              hide={!!hidden[s.name]}
+              {...(dual ? { yAxisId: 'right' } : {})}
             />
-
-            {/* First series → bars (left axis when dual) */}
-            {data.series[0] && (
-              <Bar
-                dataKey={data.series[0].name}
-                fill={COLORS[0]}
-                radius={[4, 4, 0, 0]}
-                maxBarSize={48}
-                hide={!!hidden[data.series[0].name]}
-                {...(dual ? { yAxisId: 'left' } : {})}
-              />
-            )}
-
-            {/* Remaining series → lines (right axis when dual) */}
-            {data.series.slice(1).map((s, i) => (
-              <Line
-                key={s.name}
-                type="monotone"
-                dataKey={s.name}
-                stroke={COLORS[i + 1]}
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: COLORS[i + 1] }}
-                activeDot={{ r: 6 }}
-                hide={!!hidden[s.name]}
-                {...(dual ? { yAxisId: 'right' } : {})}
-              />
-            ))}
-          </ComposedChart>
-        </ResponsiveContainer>
-        </Box>
-      </CardContent>
-    </Card>
+          ))}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </ChartCard>
   )
 }

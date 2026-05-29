@@ -1,110 +1,95 @@
-import { Box, Card, CardContent, Typography } from '@mui/material'
-import AttachMoneyIcon    from '@mui/icons-material/AttachMoney'
-import InventoryIcon      from '@mui/icons-material/Inventory'
-import PercentIcon        from '@mui/icons-material/Percent'
-import TimelineIcon       from '@mui/icons-material/Timeline'
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
-import TrendingUpIcon     from '@mui/icons-material/TrendingUp'
+import { Box, Card, CardContent, Tooltip, Typography } from '@mui/material'
+import ArrowUpwardRoundedIcon   from '@mui/icons-material/ArrowUpwardRounded'
+import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded'
+import AttachMoneyRoundedIcon   from '@mui/icons-material/AttachMoneyRounded'
+import Inventory2RoundedIcon    from '@mui/icons-material/Inventory2Rounded'
+import ReceiptLongRoundedIcon   from '@mui/icons-material/ReceiptLongRounded'
+import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded'
+import PaidRoundedIcon          from '@mui/icons-material/PaidRounded'
+import SpeedRoundedIcon         from '@mui/icons-material/SpeedRounded'
+import PercentRoundedIcon       from '@mui/icons-material/PercentRounded'
+import ScaleRoundedIcon         from '@mui/icons-material/ScaleRounded'
+import { PALETTE } from '../../theme'
 
-const STYLES = {
-  'Total Revenue':        { gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', Icon: AttachMoneyIcon },
-  'Units Sold':           { gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', Icon: InventoryIcon },
-  'Tax Collected':        { gradient: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)', Icon: AccountBalanceIcon },
-  'Order Lines':          { gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)', Icon: TimelineIcon },
-  'Avg Order Line Value': { gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', Icon: TrendingUpIcon },
-  'Effective Tax Rate':   { gradient: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', Icon: PercentIcon },
+const META = {
+  'Total Revenue':        { c: PALETTE.burgundy,   Icon: AttachMoneyRoundedIcon },
+  'Units Sold':           { c: PALETTE.sage,       Icon: Inventory2RoundedIcon },
+  'Order Lines':          { c: PALETTE.dustyBlue,  Icon: ReceiptLongRoundedIcon },
+  'Tax Collected':        { c: PALETTE.terracotta, Icon: AccountBalanceRoundedIcon },
+  'Avg Order Line Value': { c: PALETTE.plum,       Icon: PaidRoundedIcon },
+  'Revenue per Unit':     { c: PALETTE.gold,       Icon: SpeedRoundedIcon },
+  'Avg Qty / Line':       { c: PALETTE.sageHi,     Icon: ScaleRoundedIcon },
+  'Effective Tax Rate':   { c: PALETTE.burgundyHi, Icon: PercentRoundedIcon },
 }
-
-const DEFAULT_STYLE = {
-  gradient: 'linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%)',
-  Icon: AttachMoneyIcon,
-}
+const DEFAULT = { c: PALETTE.burgundy, Icon: AttachMoneyRoundedIcon }
 
 function fmt(value, unit) {
-  if (unit === 'USD') return '$' + value.toLocaleString(undefined, { maximumFractionDigits: 0 })
+  if (value == null || Number.isNaN(value)) return '—'
+  if (unit === 'USD') return '$' + value.toLocaleString(undefined, { maximumFractionDigits: value < 1000 ? 2 : 0 })
   if (unit === '%')   return value.toFixed(1) + '%'
-  return value.toLocaleString(undefined, { maximumFractionDigits: 0 })
+  return value.toLocaleString(undefined, { maximumFractionDigits: value < 100 ? 2 : 0 })
 }
 
-export default function KpiCard({ label, value, unit }) {
-  const { gradient, Icon } = STYLES[label] ?? DEFAULT_STYLE
-
+function DeltaChip({ deltaPct }) {
+  if (deltaPct == null) return null
+  const up = deltaPct >= 0
+  const color = up ? '#5B8C5A' : '#B5453B'
+  const Icon = up ? ArrowUpwardRoundedIcon : ArrowDownwardRoundedIcon
   return (
-    <Card
-      elevation={0}
-      sx={{
-        height: '100%',
-        minHeight: 160,
-        background: gradient,
-        borderRadius: 3,
-        border: 'none',
-        position: 'relative',
-        overflow: 'hidden',
-        cursor: 'default',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-        },
-      }}
-    >
-      {/* Decorative circle top-right */}
+    <Tooltip title="vs. same period, previous year">
       <Box sx={{
-        position: 'absolute', right: -20, top: -20,
-        width: 100, height: 100, borderRadius: '50%',
-        bgcolor: 'rgba(255,255,255,0.12)',
-        pointerEvents: 'none',
-      }} />
-      {/* Decorative circle bottom-left */}
-      <Box sx={{
-        position: 'absolute', left: -30, bottom: -30,
-        width: 80, height: 80, borderRadius: '50%',
-        bgcolor: 'rgba(255,255,255,0.07)',
-        pointerEvents: 'none',
-      }} />
-
-      {/* Background icon */}
-      <Box sx={{
-        position: 'absolute', right: 14, bottom: 10,
-        color: 'rgba(255,255,255,0.18)',
-        lineHeight: 0,
-        pointerEvents: 'none',
+        display: 'inline-flex', alignItems: 'center', gap: 0.25,
+        bgcolor: up ? 'rgba(91,140,90,0.12)' : 'rgba(181,69,59,0.12)',
+        color, borderRadius: 2, px: 0.75, py: 0.25, fontSize: 12, fontWeight: 700,
       }}>
-        <Icon sx={{ fontSize: 64 }} />
+        <Icon sx={{ fontSize: 14 }} />
+        {Math.abs(deltaPct).toFixed(1)}%
       </Box>
+    </Tooltip>
+  )
+}
 
-      <CardContent sx={{ p: 3.5, '&:last-child': { pb: 3.5 }, position: 'relative' }}>
+export default function KpiCard({ label, value, unit, deltaPct }) {
+  const { c, Icon } = META[label] ?? DEFAULT
+  return (
+    <Card sx={{
+      height: '100%', position: 'relative', overflow: 'hidden',
+      transition: 'transform .18s ease, box-shadow .18s ease',
+      '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 14px 34px rgba(42,37,32,0.10)' },
+      '&::before': {
+        content: '""', position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, bgcolor: c,
+      },
+    }}>
+      <CardContent sx={{ p: 2.75, pl: 3, '&:last-child': { pb: 2.75 } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25 }}>
+          <Typography sx={{
+            color: 'text.secondary', fontSize: 11.5, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: 0.8,
+          }}>
+            {label}
+          </Typography>
+          <Box sx={{
+            width: 34, height: 34, borderRadius: 2.5, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            bgcolor: `${c}14`, color: c,
+          }}>
+            <Icon sx={{ fontSize: 19 }} />
+          </Box>
+        </Box>
+
         <Typography sx={{
-          color: 'rgba(255,255,255,0.75)',
-          fontSize: 12,
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: 1.3,
-          mb: 2,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
+          fontFamily: 'Georgia, serif', fontWeight: 700, color: 'text.primary',
+          fontSize: { xs: '1.7rem', md: '2rem' }, lineHeight: 1.05, letterSpacing: '-0.02em',
         }}>
-          {label}
-        </Typography>
-
-        <Typography
-          fontWeight={800}
-          sx={{
-            color: '#fff',
-            lineHeight: 1,
-            fontSize: { xs: '2rem', sm: '2.4rem', md: '2.6rem' },
-            wordBreak: 'break-word',
-          }}
-        >
           {fmt(value, unit)}
         </Typography>
 
-        {unit && unit !== 'USD' && unit !== '%' && (
-          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, mt: 1, fontWeight: 500 }}>
-            {unit}
-          </Typography>
-        )}
+        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, minHeight: 22 }}>
+          <DeltaChip deltaPct={deltaPct} />
+          {unit !== 'USD' && unit !== '%' && (
+            <Typography sx={{ color: 'text.disabled', fontSize: 12, fontWeight: 500 }}>{unit}</Typography>
+          )}
+        </Box>
       </CardContent>
     </Card>
   )

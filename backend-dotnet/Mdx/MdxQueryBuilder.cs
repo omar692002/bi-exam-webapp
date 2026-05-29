@@ -8,6 +8,7 @@ public sealed class MdxQueryBuilder
 
     private readonly HashSet<string> _measures = new();
     private string? _rowDimension;
+    private string? _rowSet;
     private readonly List<string> _filters = new();
     private string? _orderByMeasure;
     private Direction _orderDirection = Direction.DESC;
@@ -28,6 +29,17 @@ public sealed class MdxQueryBuilder
     public MdxQueryBuilder Rows(string dimensionMember)
     {
         _rowDimension = dimensionMember;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets an explicit MDX set expression for the ROWS axis (e.g. an ordered member
+    /// list), bypassing <c>dimension.Members</c>. Used to force chronological month
+    /// order, since the Month attribute sorts alphabetically by (French) caption.
+    /// </summary>
+    public MdxQueryBuilder RowSet(string setExpression)
+    {
+        _rowSet = setExpression;
         return this;
     }
 
@@ -57,8 +69,8 @@ public sealed class MdxQueryBuilder
     {
         if (_measures.Count == 0)
             throw new InvalidOperationException("At least one measure must be set.");
-        if (_rowDimension is null)
-            throw new InvalidOperationException("Row dimension must be set via Rows(...).");
+        if (_rowDimension is null && _rowSet is null)
+            throw new InvalidOperationException("Row dimension must be set via Rows(...) or RowSet(...).");
 
         var sb = new StringBuilder();
         sb.Append("SELECT ");
@@ -77,6 +89,7 @@ public sealed class MdxQueryBuilder
 
     private string BuildRowsExpression()
     {
+        if (_rowSet is not null) return _rowSet;
         var members = _rowDimension + ".Members";
         if (_topN.HasValue && _orderByMeasure is not null)
             return $"TopCount({members}, {_topN}, {_orderByMeasure})";
