@@ -31,7 +31,7 @@ Location: `C:\Users\User\Desktop\cours2emeIng\BI\exam\webApp`
 
 **Base measures (5):** Revenue, Quantity Sold, Tax Amount, Avg Unit Price, Number of Order Lines
 
-**Calculated measures (5):** Average_Order_Line_Value, Revenue_per_Unit, Revenue_Including_Tax, Tax_Rate_Percentage, Avg_Quantity_per_Order_Line
+**Calculated measures (5):** Average_Order_Line_Value, Revenue_per_Unit, Revenue_Excluding_Tax, Tax_Rate_Percentage, Avg_Quantity_per_Order_Line
 
 **Dimensions:**
 - `Dim Date` (Type=Time) — hierarchy `Calander` (typo preserved in cube), levels Year → Quarter → Month → DateKey

@@ -14,7 +14,7 @@ public static class MdxConstants
     // Calculated measures
     public const string M_AVG_ORDER_LINE_VALUE = "[Measures].[Average_Order_Line_Value]";
     public const string M_REVENUE_PER_UNIT     = "[Measures].[Revenue_per_Unit]";
-    public const string M_REVENUE_WITH_TAX     = "[Measures].[Revenue_Including_Tax]";
+    public const string M_REVENUE_NET          = "[Measures].[Revenue_Excluding_Tax]";
     public const string M_TAX_RATE_PCT         = "[Measures].[Tax_Rate_Percentage]";
     public const string M_AVG_QTY_PER_LINE     = "[Measures].[Avg_Quantity_per_Order_Line]";
 

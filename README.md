@@ -121,8 +121,8 @@ with `IIF(... = 0, NULL, ...)`:
 |---|---|---|
 | `Average_Order_Line_Value` | `Revenue / Number of Order Lines` | guarded |
 | `Revenue_per_Unit` | `Revenue / Quantity Sold` | guarded · weighted "effective price" |
-| `Revenue_Including_Tax` | `Revenue + Tax Amount` | additive, no guard needed |
-| `Tax_Rate_Percentage` | `Tax Amount / Revenue` | guarded · shown as % |
+| `Revenue_Excluding_Tax` | `Revenue − Tax Amount` | net revenue — `Revenue` (`LineTotal`) is already tax-inclusive |
+| `Tax_Rate_Percentage` | `Tax Amount / (Revenue − Tax)` | guarded · applied rate — `Revenue` is tax-inclusive · shown as % |
 | `Avg_Quantity_per_Order_Line` | `Quantity Sold / Number of Order Lines` | guarded |
 
 ### 2.5 Build / deploy / process
