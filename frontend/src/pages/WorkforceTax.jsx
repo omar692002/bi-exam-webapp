@@ -15,7 +15,7 @@ export default function WorkforceTax() {
         <DataSlot state={topReps} height={300}>{d => <DataTable data={d} maxHeight={420} />}</DataSlot>
       </Section>
 
-      <Section title="Tax & Finance" subtitle="Tax collected against revenue, by product category" dense>
+      <Section title="Tax & Finance" subtitle="Tax computed against revenue, by product category" dense>
         <DataSlot state={tax} height={460}>
           {d => <BarChartCard data={d} horizontal subtitle="Tax vs. revenue by category" />}
         </DataSlot>

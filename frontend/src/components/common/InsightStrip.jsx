@@ -3,6 +3,12 @@ import LightbulbRoundedIcon from '@mui/icons-material/LightbulbRounded'
 import { fmtNum } from '../charts/chartUtils'
 import { PALETTE } from '../../theme'
 
+/** Singularize a simple English plural (categories→category, brands→brand, cities→city). */
+function singular(noun) {
+  if (noun.endsWith('ies')) return noun.slice(0, -3) + 'y'
+  return noun.endsWith('s') ? noun.slice(0, -1) : noun
+}
+
 /** Derive quick narrative facts from a ChartDataDto (uses series[0] as the measure). */
 export function deriveInsights(data, { unit = '', noun = 'items' } = {}) {
   if (!data?.labels?.length || !data.series?.length) return []
@@ -14,11 +20,12 @@ export function deriveInsights(data, { unit = '', noun = 'items' } = {}) {
   const leader = pairs[0]
   const top3 = pairs.slice(0, 3).reduce((s, p) => s + p.v, 0)
   const fmtV = v => (unit === 'USD' ? '$' + fmtNum(v) : unit === '%' ? v.toFixed(1) + '%' : fmtNum(v))
+  const sing = singular(noun)
 
   return [
-    { label: 'Leader', value: leader.label, hint: `${((leader.v / total) * 100).toFixed(1)}% of total`, color: PALETTE.burgundy },
-    { label: 'Top contributor', value: fmtV(leader.v), hint: `out of ${fmtV(total)}`, color: PALETTE.sage },
-    { label: 'Top-3 concentration', value: `${((top3 / total) * 100).toFixed(0)}%`, hint: `of ${data.labels.length} ${noun}`, color: PALETTE.terracotta },
+    { label: `#1 ${sing}`, value: leader.label, hint: `${((leader.v / total) * 100).toFixed(1)}% of total revenue`, color: PALETTE.burgundy },
+    { label: `#1 revenue`, value: fmtV(leader.v), hint: `out of ${fmtV(total)} total`, color: PALETTE.sage },
+    { label: `Top-3 share`, value: `${((top3 / total) * 100).toFixed(0)}%`, hint: `of revenue across ${data.labels.length} ${noun}`, color: PALETTE.terracotta },
   ]
 }
 

@@ -37,9 +37,9 @@ public sealed class AnalyticsService
         new("Total Revenue",        _repo.ScalarMeasure(MdxConstants.M_REVENUE,              tf),        "USD"),
         new("Units Sold",           _repo.ScalarMeasure(MdxConstants.M_QUANTITY,             tf),        "units"),
         new("Order Lines",          _repo.ScalarMeasure(MdxConstants.M_ORDER_LINES,          tf),        "lines"),
-        new("Tax Collected",        _repo.ScalarMeasure(MdxConstants.M_TAX_AMOUNT,           tf),        "USD"),
+        new("Tax Computed",         _repo.ScalarMeasure(MdxConstants.M_TAX_AMOUNT,           tf),        "USD"),
         new("Avg Order Line Value", _repo.ScalarMeasure(MdxConstants.M_AVG_ORDER_LINE_VALUE, tf),        "USD"),
-        new("Revenue per Unit",     _repo.ScalarMeasure(MdxConstants.M_REVENUE_PER_UNIT,     tf),        "USD"),
+        new("Avg Revenue / Unit",   _repo.ScalarMeasure(MdxConstants.M_REVENUE_PER_UNIT,     tf),        "USD"),
         new("Avg Qty / Line",       _repo.ScalarMeasure(MdxConstants.M_AVG_QTY_PER_LINE,     tf),        "units"),
         new("Effective Tax Rate",   _repo.ScalarMeasure(MdxConstants.M_TAX_RATE_PCT,         tf) * 100d, "%")
     };

@@ -15,9 +15,9 @@ const META = {
   'Total Revenue':        { c: PALETTE.burgundy,   Icon: AttachMoneyRoundedIcon },
   'Units Sold':           { c: PALETTE.sage,       Icon: Inventory2RoundedIcon },
   'Order Lines':          { c: PALETTE.dustyBlue,  Icon: ReceiptLongRoundedIcon },
-  'Tax Collected':        { c: PALETTE.terracotta, Icon: AccountBalanceRoundedIcon },
+  'Tax Computed':         { c: PALETTE.terracotta, Icon: AccountBalanceRoundedIcon },
   'Avg Order Line Value': { c: PALETTE.plum,       Icon: PaidRoundedIcon },
-  'Revenue per Unit':     { c: PALETTE.gold,       Icon: SpeedRoundedIcon },
+  'Avg Revenue / Unit':   { c: PALETTE.gold,       Icon: SpeedRoundedIcon },
   'Avg Qty / Line':       { c: PALETTE.sageHi,     Icon: ScaleRoundedIcon },
   'Effective Tax Rate':   { c: PALETTE.burgundyHi, Icon: PercentRoundedIcon },
 }
